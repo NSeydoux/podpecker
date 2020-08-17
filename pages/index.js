@@ -5,7 +5,7 @@ import {
   Session as AuthSession,
   getClientAuthenticationWithDependencies
 } from "@inrupt/solid-client-authn-browser";
-import { writeSomeData, makePublic } from "../lib/utlis";
+import { writeSomeData, makePublic, createFile } from "../lib/utlis";
 
 export default function Home() {
   const [session, setSession] = useState(new AuthSession(
@@ -19,6 +19,8 @@ export default function Home() {
   const [resource, setResource] = useState(session.info.webId);
   const [data, setData] = useState(null);
   const [rootContainer, setRootContainer] = useState(null);
+  const [targetIri, setTargetIri] = useState(null);
+  const [contentType, setContentType] = useState("text/plain");
   
   useEffect(() => {
     if(oidc === "login_sent") {
@@ -68,6 +70,13 @@ export default function Home() {
     // This prevents the page from reloading.
     e.preventDefault();
     writeSomeData(session, rootContainer, session.info.webId, data).then((createdResource) => makePublic(session, createdResource)).then(() => console.log("Data written"));
+  }
+
+  const handleCarve = (e) => {
+    // The default behaviour of the button is to resubmit. 
+    // This prevents the page from reloading.
+    e.preventDefault();
+    createFile(session, targetIri, session.info.webId, data, contentType).then((createdResource) => makePublic(session, createdResource)).then(() => console.log("File created"));
   }
 
   return (
@@ -120,6 +129,29 @@ export default function Home() {
             }}
           />
         <button onClick={(e) => handlePeck(e)}>Peck!</button>
+        </div>
+        <div>
+        Target IRI: <input
+            type="text"
+            value={targetIri}
+            onChange={e => {
+              setTargetIri(e.target.value);
+            }}
+          />
+          Data: <textarea
+            value={data}
+            onChange={e => {
+              setData(e.target.value);
+            }}
+          />
+          Content type: <input
+            type="text"
+            value={contentType}
+            onChange={e => {
+              setContentType(e.target.value);
+            }}
+          />
+        <button onClick={(e) => handleCarve(e)}>Carve file</button>
         </div>
         <pre>
           {data}
