@@ -18,6 +18,7 @@ export default function Home() {
   const [oidc, setOidc] = useState("awaiting_login");
   const [resource, setResource] = useState(session.info.webId);
   const [data, setData] = useState(null);
+  const [rootContainer, setRootContainer] = useState(null);
 
   useEffect(() => {
     if(oidc === "login_sent") {
@@ -56,8 +57,10 @@ export default function Home() {
   }
 
   const handlePeck = (e) => {
+    // The default behaviour of the button is to resubmit. 
+    // This prevents the page from reloading.
     e.preventDefault();
-    writeSomeData(session).then(() => console.log("Data written"));
+    writeSomeData(session, rootContainer, session.info.webId).then(() => console.log("Data written"));
   }
 
   return (
@@ -95,6 +98,13 @@ export default function Home() {
           <button onClick={(e) => handleFetch(e)}>Fetch</button>
         </div>
         <div>
+        <input
+            type="text"
+            value={rootContainer}
+            onChange={e => {
+              setRootContainer(e.target.value);
+            }}
+          />
         <button onClick={(e) => handlePeck(e)}>Peck!</button>
         </div>
         <pre>

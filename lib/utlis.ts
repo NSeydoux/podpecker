@@ -22,7 +22,7 @@ import {
      Session
  } from "@inrupt/solid-client-authn-browser"
 
-export async function writeSomeData(session: Session) {
+export async function writeSomeData(session: Session, rootContainer: string, owner: string) {
     const thing = createThing();
 
     let updatedThing = addStringNoLocale(
@@ -34,7 +34,7 @@ export async function writeSomeData(session: Session) {
     const updatedDataset = setThing(createSolidDataset(), updatedThing);
     
     const savedDataset = await saveSolidDatasetInContainer(
-      "https://ldp.demo-ess.inrupt.com/116455455448573774513/sandbox/",
+      rootContainer, //"https://ldp.demo-ess.inrupt.com/116455455448573774513/sandbox/",
       updatedDataset,
       { fetch: session.fetch, slugSuggestion: `test${Math.floor(Math.random() * Math.floor(15000))}` }
     );
@@ -63,7 +63,7 @@ export async function writeSomeData(session: Session) {
     // Give someone Control access to the given Resource:
     let updatedAcl = setAgentResourceAccess(
     resourceAcl,
-    "https://ldp.demo-ess.inrupt.com/116455455448573774513/profile/card#me",
+    owner, //"https://ldp.demo-ess.inrupt.com/116455455448573774513/profile/card#me",
     { read: false, append: false, write: false, control: true }
     );
     updatedAcl = setPublicResourceAccess(
