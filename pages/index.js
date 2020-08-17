@@ -5,7 +5,7 @@ import {
   Session as AuthSession,
   getClientAuthenticationWithDependencies
 } from "@inrupt/solid-client-authn-browser";
-import { writeSomeData } from "../lib/utlis";
+import { writeSomeData, makePublic } from "../lib/utlis";
 
 export default function Home() {
   const [session, setSession] = useState(new AuthSession(
@@ -19,7 +19,7 @@ export default function Home() {
   const [resource, setResource] = useState(session.info.webId);
   const [data, setData] = useState(null);
   const [rootContainer, setRootContainer] = useState(null);
-
+  
   useEffect(() => {
     if(oidc === "login_sent") {
       session.login({
@@ -56,11 +56,18 @@ export default function Home() {
     session.fetch(resource).then(response => response.text()).then(setData);
   }
 
+  const handlePublic = (e) => {
+    // The default behaviour of the button is to resubmit. 
+    // This prevents the page from reloading.
+    e.preventDefault();
+    makePublic(session, resource)
+  }
+
   const handlePeck = (e) => {
     // The default behaviour of the button is to resubmit. 
     // This prevents the page from reloading.
     e.preventDefault();
-    writeSomeData(session, rootContainer, session.info.webId).then(() => console.log("Data written"));
+    writeSomeData(session, rootContainer, session.info.webId, data).then((createdResource) => makePublic(session, createdResource)).then(() => console.log("Data written"));
   }
 
   return (
@@ -96,13 +103,20 @@ export default function Home() {
             }}
           />
           <button onClick={(e) => handleFetch(e)}>Fetch</button>
+          <button onClick={(e) => handlePublic(e)}>Make public</button>
         </div>
         <div>
-        <input
+        Root container: <input
             type="text"
             value={rootContainer}
             onChange={e => {
               setRootContainer(e.target.value);
+            }}
+          />
+          Data: <textarea
+            value={data}
+            onChange={e => {
+              setData(e.target.value);
             }}
           />
         <button onClick={(e) => handlePeck(e)}>Peck!</button>
