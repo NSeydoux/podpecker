@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import {
   Session as AuthSession,
   getClientAuthenticationWithDependencies
-} from "@inrupt/solid-client-authn-browser"
+} from "@inrupt/solid-client-authn-browser";
+import { writeSomeData } from "../lib/utlis";
 
 export default function Home() {
   const [session, setSession] = useState(new AuthSession(
@@ -54,6 +55,11 @@ export default function Home() {
     session.fetch(resource).then(response => response.text()).then(setData);
   }
 
+  const handlePeck = (e) => {
+    e.preventDefault();
+    writeSomeData(session).then(() => console.log("Data written"));
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -87,6 +93,9 @@ export default function Home() {
             }}
           />
           <button onClick={(e) => handleFetch(e)}>Fetch</button>
+        </div>
+        <div>
+        <button onClick={(e) => handlePeck(e)}>Peck!</button>
         </div>
         <pre>
           {data}
