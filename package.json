@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@inrupt/solid-client": "^0.1.1-master-211713404-915.0",
-    "@inrupt/solid-client-authn-browser": "^0.1.0",
+    "@inrupt/solid-client-authn-browser": "^0.1.1",
     "n3": "^1.6.2",
     "next": "9.5.2",
     "react": "16.13.1",
