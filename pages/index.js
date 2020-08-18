@@ -5,7 +5,8 @@ import {
   Session as AuthSession,
   getClientAuthenticationWithDependencies
 } from "@inrupt/solid-client-authn-browser";
-import { writeSomeData, makePublic, createFile } from "../lib/utlis";
+import { writeSomeData, makePublic, createACL, createFile, createContainer } from "../lib/utlis";
+import { initE2eTests } from '../lib/e2e';
 
 export default function Home() {
   const [session, setSession] = useState(new AuthSession(
@@ -19,7 +20,7 @@ export default function Home() {
   const [resource, setResource] = useState(session.info.webId);
   const [data, setData] = useState(null);
   const [rootContainer, setRootContainer] = useState(null);
-  const [targetIri, setTargetIri] = useState(null);
+  const [testSlug, setTestSlug] = useState(null);
   const [contentType, setContentType] = useState("text/plain");
   
   useEffect(() => {
@@ -72,11 +73,43 @@ export default function Home() {
     writeSomeData(session, rootContainer, session.info.webId, data).then((createdResource) => makePublic(session, createdResource)).then(() => console.log("Data written"));
   }
 
+  const handleContainer = (e) => {
+    // The default behaviour of the button is to resubmit. 
+    // This prevents the page from reloading.
+    e.preventDefault();
+    createContainer(session, rootContainer, session.info.webId, testSlug).then((createdResource) => makePublic(session, createdResource)).then(() => console.log("Container created"));
+  }
+
   const handleCarve = (e) => {
     // The default behaviour of the button is to resubmit. 
     // This prevents the page from reloading.
     e.preventDefault();
-    createFile(session, targetIri, session.info.webId, data, contentType).then((createdResource) => makePublic(session, createdResource)).then(() => console.log("File created"));
+    createFile(session, resource, session.info.webId, data, contentType).then((createdResource) => makePublic(session, createdResource)).then(() => console.log("File created"));
+  }
+
+  const handleAcl = (e) => {
+    // The default behaviour of the button is to resubmit. 
+    // This prevents the page from reloading.
+    e.preventDefault();
+    createACL(session, resource, data).then(() => console.log("ACL created"));
+  }
+
+  const handleDrill = (e) => {
+    // The default behaviour of the button is to resubmit. 
+    // This prevents the page from reloading.
+    e.preventDefault();
+    // await createContainer(session, rootContainer, session.info.webId, testSlug);
+    // createFile(session, `${rootContainer}${testSlug}/arbitrary.json`, session.info.webId, '{"arbitrary":"json data"}', "text/plain");
+    initE2eTests(session, rootContainer, session.info.webId, testSlug).then(() => console.log("Test data drilled"));
+  }
+
+  const handleDelete = (e) => {
+    // The default behaviour of the button is to resubmit. 
+    // This prevents the page from reloading.
+    e.preventDefault();
+    // await createContainer(session, rootContainer, session.info.webId, testSlug);
+    // createFile(session, `${rootContainer}${testSlug}/arbitrary.json`, session.info.webId, '{"arbitrary":"json data"}', "text/plain");
+    delete(session, resource).then(() => console.log("Target deleted"));
   }
 
   return (
@@ -103,6 +136,7 @@ export default function Home() {
           <button onClick={(e) => handleLogin(e)}>Log In</button>
         </form>
         </div>
+        <hr/>
         <div>
         <input
             type="text"
@@ -114,6 +148,7 @@ export default function Home() {
           <button onClick={(e) => handleFetch(e)}>Fetch</button>
           <button onClick={(e) => handlePublic(e)}>Make public</button>
         </div>
+        <hr/>
         <div>
         Root container: <input
             type="text"
@@ -128,14 +163,32 @@ export default function Home() {
               setData(e.target.value);
             }}
           />
-        <button onClick={(e) => handlePeck(e)}>Peck!</button>
+        <button onClick={(e) => handlePeck(e)}>Peck data</button>
         </div>
+        <hr></hr>
+        <div>
+        Root container: <input
+            type="text"
+            value={rootContainer}
+            onChange={e => {
+              setRootContainer(e.target.value);
+            }}
+          />
+          Slug: <input
+            value={testSlug}
+            onChange={e => {
+              setTestSlug(e.target.value);
+            }}
+          />
+        <button onClick={(e) => handleContainer(e)}>Peck container</button>
+        </div>
+        <hr/>
         <div>
         Target IRI: <input
             type="text"
-            value={targetIri}
+            value={resource}
             onChange={e => {
-              setTargetIri(e.target.value);
+              setResource(e.target.value);
             }}
           />
           Data: <textarea
@@ -152,6 +205,51 @@ export default function Home() {
             }}
           />
         <button onClick={(e) => handleCarve(e)}>Carve file</button>
+        </div>
+        <hr></hr>
+        <div>
+        Target IRI: <input
+            type="text"
+            value={resource}
+            onChange={e => {
+              setResource(e.target.value);
+            }}
+          />
+          Data: <textarea
+            value={data}
+            onChange={e => {
+              setData(e.target.value);
+            }}
+          />
+        <button onClick={(e) => handleAcl(e)}>Carve ACL</button>
+        </div>
+        <hr></hr>
+        <div>
+        Root container: <input
+            type="text"
+            value={rootContainer}
+            onChange={e => {
+              setRootContainer(e.target.value);
+            }}
+          />
+          Test container slug: <input
+            type="text"
+            value={testSlug}
+            onChange={e => {
+              setTestSlug(e.target.value);
+            }}
+          />
+          <button onClick={(e) => handleDrill(e)}>Drill test data</button>
+        </div>
+        <div>
+        Target IRI: <input
+            type="text"
+            value={resource}
+            onChange={e => {
+              setResource(e.target.value);
+            }}
+          />
+        <button onClick={(e) => handleDelete(e)}>Delete target</button>
         </div>
         <pre>
           {data}

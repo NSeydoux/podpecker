@@ -8,6 +8,7 @@ import {
     saveSolidDatasetInContainer,
     getSolidDatasetWithAcl,
     getSourceUrl,
+    getFileWithAcl,
     createAclFromFallbackAcl,
     hasResourceAcl,
     hasAccessibleAcl,
@@ -20,7 +21,16 @@ import {
     WithResourceInfo,
     SolidDataset,
     setPublicDefaultAccess,
-    overwriteFile
+    overwriteFile,
+    AclDataset,
+    getFetchedFrom,
+    getThingAll,
+    getIri,
+    addIri,
+    asIri,
+    asUrl,
+    ThingPersisted,
+    deleteFile
  } from "@inrupt/solid-client";
 
  import {
@@ -88,6 +98,17 @@ export async function makePublic(session: Session, resourceIri: string) {
         updatedAcl,
     { read: true, append: true, write: true, control: true },
     );
+    // On ESS, default access requires resource access
+    getThingAll(updatedAcl).forEach(thing => {
+        if (getIri(thing, "http://www.w3.org/ns/auth/acl#default")) {
+            const newthing = addIri(
+                thing,
+                "http://www.w3.org/ns/auth/acl#accessTo",
+                getIri(thing, "http://www.w3.org/ns/auth/acl#default")
+            );
+            updatedAcl = setThing(updatedAcl, newthing);
+        }
+    })
     await saveAclFor(myDatasetWithAcl, updatedAcl, { fetch: session.fetch });
 }
 
@@ -95,7 +116,13 @@ async function isTurtle(turtle: string, targetIri: string): Promise<boolean> {
     return turtleToTriples(turtle, targetIri).then(() => true).catch(() => false);
 }
 
-async function writeDataset(session: Session, rootContainer: string, owner: string, turtle: string, targetSlug: string, targetIri: string) {
+async function writeDataset(
+        session: Session, 
+        rootContainer: string, 
+        owner: string, 
+        turtle: string, 
+        targetSlug: string, 
+        targetIri: string) {
     const data = await turtleToTriples(turtle, targetIri)
     const dataset = createSolidDataset();
     data.forEach(quad => dataset.add(quad));
@@ -107,23 +134,83 @@ async function writeDataset(session: Session, rootContainer: string, owner: stri
     );
 }
 
-async function writeFile(session: Session, rootContainer: string, owner: string, content: string, targetSlug: string) {
-    return await saveFileInContainer(
-        rootContainer, 
-        new Blob([content]),
-        { fetch: session.fetch, slug: targetSlug}
-    )
+export async function deleteTarget(
+    session: Session, 
+    targetIri: string
+) {
+    await deleteFile(targetIri, { fetch: session.fetch });
 }
 
-export async function writeSomeData(session: Session, rootContainer: string, owner: string, turtle: string) {
-    const targetSlug = `test${Math.floor(Math.random() * Math.floor(15000))}`;
+export async function createContainer(
+        session: Session, 
+        rootContainer: string, 
+        owner: string, 
+        slug: string) {
+    const containerIri = `${rootContainer}${slug}/`
+    await session.fetch(rootContainer, {
+        method: "POST",
+        headers: {
+            "Content-Type": "text/turtle",
+            "Link": '<http://www.w3.org/ns/ldp#BasicContainer>; rel="type"',
+            "Slug": slug
+        }
+    })
+    console.log(`${containerIri} created, setting access`);
+    // Get the ACL for the created file
+    const myDatasetWithAcl = await getSolidDatasetWithAcl(
+        containerIri, { fetch: session.fetch }
+    );
+    let resourceAcl: AclDataset;
+    if (!hasResourceAcl(myDatasetWithAcl)) {
+        if (!hasAccessibleAcl(myDatasetWithAcl)) {
+            throw new Error(
+            "The current user does not have permission to change access rights to this Resource."
+            );
+        }
+        if (!hasFallbackAcl(myDatasetWithAcl)) {
+            throw new Error(
+            "The current user does not have permission to see who currently has access to this Resource."
+            );
+            // Alternatively, initialise a new empty ACL as follows,
+            // but be aware that if you do not give someone Control access,
+            // **nobody will ever be able to change Access permissions in the future**:
+            // resourceAcl = createAcl(myDatasetWithAcl);
+        }
+        console.log("Creating acl from fallback")
+        resourceAcl = createAclFromFallbackAcl(myDatasetWithAcl);
+    } else {
+        console.log("retrieving resource ACL")
+        resourceAcl = getResourceAcl(myDatasetWithAcl);
+    }
+
+    // Give someone Control access to the given Resource:
+    let updatedAcl = setAgentResourceAccess(
+        resourceAcl,
+        owner,
+        { read: true, append: true, write: true, control: true }
+    );
+    await saveAclFor(myDatasetWithAcl, updatedAcl, { fetch: session.fetch });
+    return containerIri;
+}
+
+export async function writeSomeData(
+        session: Session, 
+        rootContainer: string, 
+        owner: string, 
+        turtle: string,
+        slug?: string,
+        setAcl: boolean = true) {
+    const targetSlug = slug ?? `test${Math.floor(Math.random() * Math.floor(15000))}`;
     const targetIri = `${rootContainer}${targetSlug}`;
     console.log(`Creating resource at ${targetIri}`)
     if(await isTurtle(turtle, targetIri)) {
         const savedDataset = await writeDataset(session, rootContainer, owner, turtle, targetSlug, targetIri);
+        if(!setAcl) {
+            return targetIri;
+        }
         // Get the ACL for the created file
         const myDatasetWithAcl = await getSolidDatasetWithAcl(getSourceUrl(savedDataset), { fetch: session.fetch });
-        let resourceAcl;
+        let resourceAcl: AclDataset;
         if (!hasResourceAcl(myDatasetWithAcl)) {
             if (!hasAccessibleAcl(myDatasetWithAcl)) {
                 throw new Error(
@@ -152,50 +239,29 @@ export async function writeSomeData(session: Session, rootContainer: string, own
         );
         await saveAclFor(myDatasetWithAcl, updatedAcl, { fetch: session.fetch });
     } else {
-        const savedFile = await writeFile(session, rootContainer, owner, turtle, targetSlug);
-        // Get the ACL for the created file
-        const myFileWithAcl = await getSolidDatasetWithAcl(getSourceUrl(savedFile), { fetch: session.fetch });
-        let resourceAcl;
-        if (!hasResourceAcl(myFileWithAcl)) {
-            if (!hasAccessibleAcl(myFileWithAcl)) {
-                throw new Error(
-                "The current user does not have permission to change access rights to this Resource."
-                );
-            }
-            if (!hasFallbackAcl(myFileWithAcl)) {
-                throw new Error(
-                "The current user does not have permission to see who currently has access to this Resource."
-                );
-                // Alternatively, initialise a new empty ACL as follows,
-                // but be aware that if you do not give someone Control access,
-                // **nobody will ever be able to change Access permissions in the future**:
-                // resourceAcl = createAcl(myDatasetWithAcl);
-            }
-            resourceAcl = createAclFromFallbackAcl(myFileWithAcl);
-        } else {
-            resourceAcl = getResourceAcl(myFileWithAcl);
-        }
-
-        // Give someone Control access to the given Resource:
-        let updatedAcl = setAgentResourceAccess(
-            resourceAcl,
-            owner,
-            { read: true, append: true, write: true, control: true }
-        );
-        await saveAclFor(myFileWithAcl, updatedAcl, { fetch: session.fetch });
+        console.log("To create a non-RDF file, please use the 'Carve' button");
     }
     return targetIri;
 }
 
-export async function createFile(session: Session, targetIri: string, owner: string, content: string, contentType: string) {
+export async function createFile(
+        session: Session, 
+        targetIri: string, 
+        owner: string, 
+        content: string, 
+        contentType: string) {
     console.log(`Creating resource at ${targetIri}`)
     const savedFile = await overwriteFile(
         targetIri, 
         new Blob([content], { type: contentType}),
         { fetch: session.fetch }
     )
+    console.log(`Saved file at ${getFetchedFrom(savedFile)}`)
     // Get the ACL for the created file
-    const myFileWithAcl = await getSolidDatasetWithAcl(getSourceUrl(savedFile), { fetch: session.fetch });
+    // const myFileWithAcl = await getFileWithAcl(targetIri, { fetch: session.fetch, init: {headers: {Accept: contentType}} });
+    const myFileWithAcl = await getFileWithAcl(
+        targetIri, { fetch: session.fetch, init: {headers: {Accept: contentType}} }
+    );
     let resourceAcl;
     if (!hasResourceAcl(myFileWithAcl)) {
         if (!hasAccessibleAcl(myFileWithAcl)) {
@@ -225,5 +291,29 @@ export async function createFile(session: Session, targetIri: string, owner: str
         { read: true, append: true, write: true, control: true }
     );
     await saveAclFor(myFileWithAcl, updatedAcl, { fetch: session.fetch });
+    return targetIri;
+}
+
+export async function createACL(session: Session, targetIri: string, content: string) {
+    console.log(`PUTting ACL at ${targetIri}`)
+    // const data = await turtleToTriples(content, targetIri)
+    // const dataset = createSolidDataset();
+    // data.forEach(quad => dataset.add(quad));
+
+    // const savedFile = await saveSolidDatasetAt(
+    //     targetIri, 
+    //     dataset,
+    //     { fetch: session.fetch }
+    // )
+    session.fetch(targetIri, {
+        method: "PUT",
+        body: content,
+        headers: {
+            "Content-Type": "text/turtle",
+            Link: '<http://www.w3.org/ns/ldp#Resource>; rel="type"',
+        } 
+        
+    })
+    // console.log(`Saved ACL at ${getFetchedFrom(savedFile)}`)
     return targetIri;
 }
