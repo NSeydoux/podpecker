@@ -5,8 +5,8 @@ import {
   Session as AuthSession,
   getClientAuthenticationWithDependencies
 } from "@inrupt/solid-client-authn-browser";
-import { writeSomeData, makePublic, createACL, createFile, createContainer } from "../lib/utlis";
-import { initE2eTests } from '../lib/e2e';
+import { writeSomeData, makePublic, createACL, createFile, createContainer, deleteTarget } from "../lib/utlis";
+import { initE2eTests, cleanupTestData } from '../lib/e2e';
 
 export default function Home() {
   const [session, setSession] = useState(new AuthSession(
@@ -109,7 +109,16 @@ export default function Home() {
     e.preventDefault();
     // await createContainer(session, rootContainer, session.info.webId, testSlug);
     // createFile(session, `${rootContainer}${testSlug}/arbitrary.json`, session.info.webId, '{"arbitrary":"json data"}', "text/plain");
-    delete(session, resource).then(() => console.log("Target deleted"));
+    deleteTarget(session, resource).then(() => console.log("Target deleted"));
+  }
+
+  const handleCleanup = (e) => {
+    // The default behaviour of the button is to resubmit. 
+    // This prevents the page from reloading.
+    e.preventDefault();
+    // await createContainer(session, rootContainer, session.info.webId, testSlug);
+    // createFile(session, `${rootContainer}${testSlug}/arbitrary.json`, session.info.webId, '{"arbitrary":"json data"}', "text/plain");
+    cleanupTestData(session, rootContainer).then(() => console.log("Test data cleaned up"));
   }
 
   return (
@@ -240,6 +249,7 @@ export default function Home() {
             }}
           />
           <button onClick={(e) => handleDrill(e)}>Drill test data</button>
+          <button onClick={(e) => handleCleanup(e)}>Cleanup test data</button>
         </div>
         <div>
         Target IRI: <input
