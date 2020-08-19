@@ -8,6 +8,8 @@ import {
 import { writeSomeData, makePublic, createACL, createFile, createContainer, deleteTarget } from "../lib/utlis";
 import { initE2eTests, cleanupTestData } from '../lib/e2e';
 
+const REDIRECT_URL = "https://podpecker.zwifi.eu" // http://localhost:3000
+
 export default function Home() {
   const [session, setSession] = useState(new AuthSession(
     {
@@ -26,7 +28,7 @@ export default function Home() {
   useEffect(() => {
     if(oidc === "login_sent") {
       session.login({
-        redirectUrl: new URL("http://localhost:3000/"),
+        redirectUrl: new URL(REDIRECT_URL),
         oidcIssuer: new URL(issuer)
       });
     }
