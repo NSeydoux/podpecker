@@ -8,8 +8,9 @@
     "start": "next start"
   },
   "dependencies": {
-    "@inrupt/solid-client": "^0.1.1-master-211713404-915.0",
-    "@inrupt/solid-client-authn-browser": "^0.1.1",
+    "@inrupt/oidc-dpop-client-browser": "^0.2.1-1x-311354661-1297.0",
+    "@inrupt/solid-client": "^0.1.1-test1158-getContainerPath-205317953-866.0",
+    "@inrupt/solid-client-authn-browser": "^0.2.1-1x-311354661-1297.0",
     "n3": "^1.6.2",
     "next": "9.5.2",
     "react": "16.13.1",
