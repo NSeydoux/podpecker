@@ -23,7 +23,6 @@ import {
     setPublicDefaultAccess,
     overwriteFile,
     AclDataset,
-    getFetchedFrom,
     getThingAll,
     getIri,
     addIri,
@@ -330,7 +329,7 @@ export async function createFile(
         new Blob([content], { type: contentType}),
         { fetch: session.fetch }
     )
-    console.log(`Saved file at ${getFetchedFrom(savedFile)}`)
+    console.log(`Saved file at ${getSourceUrl(savedFile)}`)
     // Get the ACL for the created file
     // const myFileWithAcl = await getFileWithAcl(targetIri, { fetch: session.fetch, init: {headers: {Accept: contentType}} });
     const myFileWithAcl = await getFileWithAcl(

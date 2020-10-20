@@ -28,7 +28,7 @@ export async function initE2eTests(session: Session, rootContainer: string, owne
 
     iri = await createContainer(session, testRoot, owner, "lit-pod-acl-initialisation-test");
     await makePublic(session, iri);
-    await makePublic(session, await writeSomeData(session, iri, owner, "", "resource.ttl"));
+    await writeSomeData(session, iri, owner, "", "resource.ttl", false);
     console.log("lit-pod-acl-initialisation-test created");
 
     iri = await createContainer(session, testRoot, owner, "lit-pod-acl-test");
@@ -68,11 +68,14 @@ export async function initE2eTests(session: Session, rootContainer: string, owne
     @prefix schema: <http://schema.org/>.
     @prefix n0: <http://xmlns.com/foaf/0.1/>.
     @prefix XML: <http://www.w3.org/2001/XMLSchema#>.
+    @prefix ex: <https://example.com/>.
     
     :thing1
-        a n0:Document;
-        n0:name "Thing for first end-to-end test";
-        n0:nick "Random nick 0.09692964405333937".`
+      a n0:Document;
+      n0:name "Thing for first end-to-end test";
+      n0:nick "Random nick 0.09692964405333937".
+    :thing2 n0:name "Thing for second end-to-end test"; 
+      ex:boolean false.`
 
     await makePublic(session, await writeSomeData(session, testRoot, owner, someData, "lit-solid-core-test.ttl", true));
     await makePublic(session, await writeSomeData(session, testRoot, owner, someData, "lit-pod-test.ttl", true));
