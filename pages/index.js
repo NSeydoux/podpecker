@@ -8,7 +8,7 @@ import {
 import { writeSomeData, makePublic, createACL, createFile, createContainer, deleteTarget } from "../lib/utlis";
 import { initE2eTests, cleanupTestData } from '../lib/e2e';
 
-const REDIRECT_URL = "https://podpecker.zwifi.eu" // http://localhost:3000
+const REDIRECT_URL = "http://localhost:3000" //"https://podpecker.zwifi.eu"
 
 export default function Home() {
   const [session, setSession] = useState(new AuthSession(
@@ -17,22 +17,13 @@ export default function Home() {
     },
     "mySession"
   ));
-  const [issuer, setIssuer] = useState("https://broker.demo-ess.inrupt.com/");
-  const [oidc, setOidc] = useState("awaiting_login");
+  const [issuer, setIssuer] = useState("https://broker.pod.inrupt.com/");
   const [resource, setResource] = useState(session.info.webId);
   const [data, setData] = useState(null);
   const [rootContainer, setRootContainer] = useState(null);
   const [testSlug, setTestSlug] = useState(null);
   const [contentType, setContentType] = useState("text/plain");
-  
-  useEffect(() => {
-    if(oidc === "login_sent") {
-      session.login({
-        redirectUrl: new URL(REDIRECT_URL),
-        oidcIssuer: new URL(issuer)
-      });
-    }
-  }, [oidc]);
+
 
   useEffect(() => {
     const authCode =
@@ -51,7 +42,10 @@ export default function Home() {
     // The default behaviour of the button is to resubmit. 
     // This prevents the page from reloading.
     e.preventDefault();
-    setOidc("login_sent")
+    session.login({
+        redirectUrl: REDIRECT_URL,
+        oidcIssuer: issuer
+      });
   }
 
   const handleFetch = (e) => {
